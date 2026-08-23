@@ -1,0 +1,14 @@
+[06:09:38]: Settings path initialized: C:\Users\Night\AppData\Roaming\lyrics-status\settings.json
+[06:09:38]: Loading settings from: C:\Users\Night\AppData\Roaming\lyrics-status\settings.json
+[06:09:38]: Settings loaded successfully
+[06:09:39]: Spotify token refreshed from the linked Discord account
+[06:09:40]: PlaybackStateUpdater: Wasted Summers - playing
+[06:09:41]: Lyrics fetch error from Spotify: Unexpected token 'R', "RBAC: access denied" is not valid JSON
+[06:09:41]: Lyrics fetch error from LrcLib: ENOENT: no such file or directory, open './cache/Wasted Summers-juju<3.json'
+[06:09:42]: PlaybackStateUpdater: Wasted Summers - playing
+[06:09:43]: PlaybackStateUpdater: Wasted Summers - playing
+[06:09:45]: PlaybackStateUpdater: Wasted Summers - playing
+[06:09:46]: PlaybackStateUpdater: Wasted Summers - playing
+[06:09:48]: PlaybackStateUpdater: Wasted Summers - playing
+[06:09:49]: PlaybackStateUpdater: Wasted Summers - playing
+[06:09:51]: PlaybackStateUpdater: Wasted Summers - playing

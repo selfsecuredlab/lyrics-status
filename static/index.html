@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="oled" data-background-style="solid">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; style-src 'self' 'unsafe-inline' file: https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' file: https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' file:; img-src 'self' data: file: https://i.scdn.co https://*.scdn.co https://*.spotifycdn.com https://cdn.discordapp.com https://cdn.simpleicons.org; connect-src 'self' http://127.0.0.1:*">
+    <title>LyricsStatus</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles-redesign.css">
+</head>
+<body>
+
+    <!-- Legacy DOM stubs: hidden elements that app.js references by ID.
+         Keeps the existing JS from throwing null-ref errors. -->
+    <div id="legacy-dummies" style="display:none!important">
+        <div id="loading-screen"></div><div id="loading-greeting"></div><div id="loading-progress"></div><div id="loading-status"></div><div id="loading-particles"></div>
+        <button id="close-app-btn"></button>
+        <div id="sidebar-username"></div><div id="spotify-user"></div><div id="spotify-user-name"></div>
+        <div id="lyrics-source"></div><button id="toggle-btn"></button><div id="toggle-icon"></div><div id="toggle-text"></div>
+        <div id="songs-today"></div><div id="lyrics-found"></div><div id="status-changes"></div><div id="cached-songs"></div>
+        <div id="history-list"></div><button id="clear-history"></button>
+        <input type="checkbox" id="show-label"><input type="checkbox" id="use-custom-emoji"><input id="emoji-id">
+        <input type="checkbox" id="emoji-animated"><div id="advanced-settings"></div>
+        <input type="checkbox" id="full-lyrics-display"><input type="checkbox" id="minimize-tray"><input id="volume-slider">
+        <div id="volume-value"></div><button id="volume-btn"></button><input id="spotify-search-input"><button id="spotify-search-btn"></button>
+        <div id="search-results"></div><div id="playlists-grid"></div><button id="refresh-playlists-btn"></button><div id="playlist-modal"></div>
+        <div id="playlist-modal-cover"></div><div id="playlist-modal-name"></div><div id="playlist-tracks"></div><button id="play-playlist-btn"></button>
+        <button id="playlist-back-btn"></button><button id="open-web-panel"></button><a id="github-link"></a><button id="report-bug"></button>
+        <button id="discord-help-btn"></button><div id="discord-help-modal"></div><button id="discord-help-close"></button>
+        <button id="spotify-help-btn"></button><div id="spotify-help-modal"></div><button id="spotify-help-close"></button>
+        <select id="language-select"></select><div id="preview-about-section"></div><div id="preview-bio"></div><div id="preview-connections-section"></div>
+        <div id="preview-connections"></div><div id="status-badge"></div><div id="status-text"></div>
+        <div id="preview-status-pill"></div><div id="preview-discord-status"></div>
+        <div id="playlist-modal-tracks"></div>
+    </div>
+
+    <header class="window-titlebar" aria-label="Window controls">
+        <div class="window-drag-region" aria-hidden="true"></div>
+        <div class="window-title-center">
+            <span class="window-app-name">LyricsStatus</span>
+            <span class="window-title-separator" aria-hidden="true"></span>
+            <span class="window-app-credit">by selfsecured</span>
+        </div>
+        <div class="window-controls">
+            <button id="minimize-btn" class="window-control" aria-label="Minimize" title="Minimize"><i class="fa-solid fa-minus"></i></button>
+            <button id="maximize-btn" class="window-control" aria-label="Maximize or restore" title="Maximize"><i class="fa-regular fa-square"></i></button>
+            <button id="close-btn" class="window-control close" aria-label="Close" title="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+    </header>
+
+    <!-- ============================================================
+         APP SHELL
+         ============================================================ -->
+    <div id="app-shell">
+
+        <!-- LEFT SIDEBAR -->
+        <aside id="sidebar" class="sidebar" aria-label="Navigation">
+            <div class="sidebar-header">
+                <button class="collapse-btn" aria-label="Collapse sidebar" title="Collapse">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav" aria-label="Main navigation">
+                <button class="nav-btn active" data-tab="lyrics" aria-current="page">
+                    <i class="fa-solid fa-music" aria-hidden="true"></i><span>Lyrics</span>
+                </button>
+                <button class="nav-btn" data-tab="profile">
+                    <i class="fa-solid fa-user" aria-hidden="true"></i><span>Profile</span>
+                </button>
+                <button class="nav-btn" data-tab="appearance">
+                    <i class="fa-solid fa-palette" aria-hidden="true"></i><span>Appearance</span>
+                </button>
+                <button class="nav-btn" data-tab="templates">
+                    <i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>Templates</span>
+                </button>
+                <button class="nav-btn" data-tab="settings">
+                    <i class="fa-solid fa-gear" aria-hidden="true"></i><span>Settings</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user" id="sidebar-user-card">
+                    <div class="sidebar-user-avatar">
+                        <i class="fa-solid fa-circle-user" aria-hidden="true"></i>
+                    </div>
+                    <div class="sidebar-user-info">
+                        <div class="sidebar-user-name" id="sidebar-display-name">Not connected</div>
+                        <div class="sidebar-user-tag" id="sidebar-user-tag">Connect Discord</div>
+                    </div>
+                </div>
+                <div class="sidebar-kbd"><kbd>Ctrl</kbd><kbd>K</kbd> Command Palette</div>
+            </div>
+        </aside>
+
+        <!-- MAIN AREA -->
+        <main id="main-area">
+
+            <!-- TOP BAR -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <h1 class="view-title" id="view-title">Lyrics</h1>
+                </div>
+                <div class="topbar-right">
+                    <div class="connection-pill" id="connection-pill">
+                        <span class="connection-dot" id="status-indicator"></span>
+                        <span class="connection-label">Offline</span>
+                    </div>
+                    <span class="save-state" id="save-state">Saved</span>
+                    <button class="btn-ghost" id="reset-btn" title="Reset changes">Reset</button>
+                    <button class="btn-primary" id="save-settings">Save</button>
+                </div>
+            </header>
+
+            <!-- WORKSPACE: EDITOR + PREVIEW -->
+            <div class="workspace-split">
+
+                <!-- EDITOR PANE (scrollable settings) -->
+                <div class="editor-pane" id="editor-pane">
+
+                    <!-- ===== LYRICS TAB ===== -->
+                    <div class="tab-content active" id="lyrics-tab">
+                        <section class="settings-section">
+                            <h2>Status Format</h2>
+                            <div class="setting-card">
+                                <div class="setting-row">
+                                    <div class="setting-info">
+                                        <h3>Custom Status Layout</h3>
+                                        <p>Define how lyrics appear in your Discord status</p>
+                                    </div>
+                                </div>
+                                <div class="format-builder">
+                                    <div class="format-chips">
+                                        <button class="chip" data-var="{lyrics}">lyrics</button>
+                                        <button class="chip" data-var="{song}">song</button>
+                                        <button class="chip" data-var="{artist}">artist</button>
+                                        <button class="chip" data-var="{album}">album</button>
+                                        <button class="chip" data-var="{timestamp}">timestamp</button>
+                                        <button class="chip" data-var="{elapsed}">elapsed</button>
+                                        <button class="chip" data-var="{remaining}">remaining</button>
+                                        <button class="chip" data-var="{duration}">duration</button>
+                                    </div>
+                                    <input type="text" id="custom-status" class="settings-input" placeholder="[{timestamp}] {lyrics}">
+                                    <div class="format-preview" aria-live="polite">
+                                        <span class="format-preview-label">Preview</span>
+                                        <span id="status-preview">[0:42] Awaiting lyrics...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <div id="lyrics-presets-anchor"></div>
+
+                        <section class="settings-section">
+                            <h2>Display</h2>
+                            <div class="setting-card">
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Show Timestamp</h3><p>Include elapsed time in the status</p></div>
+                                    <label class="toggle-switch"><input type="checkbox" id="show-timestamp"><span class="toggle-track"></span></label>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="settings-section">
+                            <h2>Lyrics Behavior</h2>
+                            <div class="setting-card">
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Lyric Mode</h3><p>Single-line or multi-line display</p></div>
+                                    <div class="segmented-control" id="lyric-mode-control">
+                                        <button class="seg-btn active" type="button" data-value="single">Single</button>
+                                        <button class="seg-btn" type="button" data-value="multi">Multi</button>
+                                    </div>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Transition Animation</h3></div>
+                                    <select class="settings-select" id="lyric-transition">
+                                        <option value="fade">Fade</option>
+                                        <option value="slide-up">Slide Up</option>
+                                        <option value="slide-down">Slide Down</option>
+                                        <option value="blur">Blur</option>
+                                        <option value="scale">Scale</option>
+                                        <option value="none">None</option>
+                                    </select>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Text Alignment</h3></div>
+                                    <div class="segmented-control" id="lyric-alignment-control">
+                                        <button class="seg-btn" type="button" data-value="left"><i class="fa-solid fa-align-left"></i></button>
+                                        <button class="seg-btn active" type="button" data-value="center"><i class="fa-solid fa-align-center"></i></button>
+                                        <button class="seg-btn" type="button" data-value="right"><i class="fa-solid fa-align-right"></i></button>
+                                    </div>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Max Lyric Length</h3><p>Truncate lyrics longer than this</p></div>
+                                    <input type="number" class="settings-input compact" id="lyric-max-length" value="128" min="32" max="128">
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- ===== PROFILE TAB ===== -->
+                    <div class="tab-content" id="profile-tab">
+                        <section class="settings-section">
+                            <h2>Connected Profiles</h2>
+                            <p class="section-desc">Your Discord identity and its linked Spotify account, together.</p>
+                            <div class="connected-profiles-grid">
+                                <article class="connected-profile-card discord-account-card">
+                                    <div class="connected-profile-brand"><i class="fa-brands fa-discord"></i><span>Discord</span></div>
+                                    <div id="discord-connected-info" class="connected-profile-content">
+                                        <div class="connected-profile-empty">Connect Discord in Settings to load this profile.</div>
+                                    </div>
+                                </article>
+                                <article class="connected-profile-card spotify-account-card">
+                                    <div class="connected-profile-brand"><i class="fa-brands fa-spotify"></i><span>Spotify</span></div>
+                                    <div id="spotify-connected-info" class="connected-profile-content">
+                                        <div class="connected-profile-empty">Spotify will appear here from Discord Connections.</div>
+                                    </div>
+                                </article>
+                            </div>
+                        </section>
+                        <section class="settings-section">
+                            <h2>Identity</h2>
+                            <div class="setting-card">
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Display Name Source</h3><p>Use display name or username</p></div>
+                                    <div class="segmented-control">
+                                        <button class="seg-btn active" data-value="display">Display Name</button>
+                                        <button class="seg-btn" data-value="username">Username</button>
+                                    </div>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Show Avatar</h3></div>
+                                    <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-track"></span></label>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Show Avatar Decoration</h3></div>
+                                    <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-track"></span></label>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Show Banner</h3></div>
+                                    <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-track"></span></label>
+                                </div>
+                            </div>
+                        </section>
+                        <section class="settings-section">
+                            <h2>Color</h2>
+                            <div class="setting-card">
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Use Discord Profile Color</h3><p>Pull accent from your Discord profile</p></div>
+                                    <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-track"></span></label>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Custom Accent Color</h3></div>
+                                    <input type="color" class="color-input" value="#5865F2">
+                                </div>
+                            </div>
+                        </section>
+                        <section class="settings-section">
+                            <h2>Layout</h2>
+                            <div class="setting-card">
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Preview Size</h3></div>
+                                    <div class="segmented-control" id="preview-size-control">
+                                        <button class="seg-btn" data-preview-size="compact">Compact</button>
+                                        <button class="seg-btn active" data-preview-size="balanced">Balanced</button>
+                                        <button class="seg-btn" data-preview-size="large">Large</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- ===== APPEARANCE TAB ===== -->
+                    <div class="tab-content" id="appearance-tab">
+                        <section class="settings-section">
+                            <h2>Theme</h2>
+                            <div class="theme-grid">
+                                <button class="theme-tile" data-theme="midnight">
+                                    <div class="theme-preview" style="background:#09090b"></div>
+                                    <span>Midnight</span>
+                                </button>
+                                <button class="theme-tile" data-theme="obsidian">
+                                    <div class="theme-preview" style="background:#0c0c0c"></div>
+                                    <span>Obsidian</span>
+                                </button>
+                                <button class="theme-tile" data-theme="discord">
+                                    <div class="theme-preview" style="background:#313338"></div>
+                                    <span>Discord</span>
+                                </button>
+                                <button class="theme-tile active" data-theme="oled">
+                                    <div class="theme-preview" style="background:#000000"></div>
+                                    <span>OLED</span>
+                                </button>
+                                <button class="theme-tile" data-theme="frost">
+                                    <div class="theme-preview" style="background:#1e293b"></div>
+                                    <span>Frost</span>
+                                </button>
+                            </div>
+                        </section>
+                        <section class="settings-section">
+                            <h2>Accent Color</h2>
+                            <div class="setting-card">
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Source</h3></div>
+                                    <select class="settings-select" id="appearance-accent-source">
+                                        <option value="spotify">Spotify green</option>
+                                        <option value="discord">Discord profile</option>
+                                        <option value="artwork">Spotify artwork</option>
+                                        <option value="custom">Custom</option>
+                                    </select>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Color</h3></div>
+                                    <input type="color" class="color-input" id="appearance-accent-color" value="#5865F2" aria-label="Custom accent color">
+                                </div>
+                            </div>
+                        </section>
+                        <section class="settings-section">
+                            <h2>Background</h2>
+                            <div class="setting-card">
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Style</h3></div>
+                                    <select class="settings-select" id="appearance-background-style">
+                                        <option value="solid">Solid</option>
+                                        <option value="gradient">Subtle gradient</option>
+                                        <option value="artwork-blur">Artwork blur</option>
+                                        <option value="banner-blur">Banner blur</option>
+                                    </select>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Blur</h3><p><output id="background-blur-value">40px</output></p></div>
+                                    <input type="range" class="settings-range" id="appearance-background-blur" min="0" max="80" value="40">
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Opacity</h3><p><output id="background-opacity-value">80%</output></p></div>
+                                    <input type="range" class="settings-range" id="appearance-background-opacity" min="0" max="100" value="80">
+                                </div>
+                            </div>
+                        </section>
+                        <section class="settings-section">
+                            <h2>Background Motion</h2>
+                            <div class="setting-card">
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Animation</h3><p>Choose one of the restored ambient modes</p></div>
+                                    <select class="settings-select" id="background-animation">
+                                        <option value="none">None</option>
+                                        <option value="aurora">Aurora</option>
+                                        <option value="mesh">Mesh</option>
+                                        <option value="orbs">Orbs</option>
+                                        <option value="particles">Particles</option>
+                                        <option value="grain">Grain</option>
+                                        <option value="waves">Waves</option>
+                                        <option value="grid">Grid</option>
+                                        <option value="rain">Rain</option>
+                                        <option value="shimmer">Shimmer</option>
+                                        <option value="liquid">Liquid</option>
+                                    </select>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Intensity</h3><p id="intensity-value">60%</p></div>
+                                    <input type="range" class="settings-range" id="animation-intensity" min="0" max="100" value="60">
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Speed</h3><p id="speed-value">1.2x</p></div>
+                                    <input type="range" class="settings-range" id="animation-speed" min="0.2" max="3" value="1.2" step="0.1">
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- ===== TEMPLATES TAB ===== -->
+                    <div class="tab-content" id="templates-tab">
+                        <section class="settings-section">
+                            <h2>Status Templates</h2>
+                            <p class="section-desc">Polished layouts built from fields LyricsStatus can update live.</p>
+                            <div class="template-grid">
+                                <button class="template-card active" data-preset="{lyrics}">
+                                    <div class="template-card-head"><span class="template-icon"><i class="fa-solid fa-minus"></i></span><span class="template-badge">Clean</span></div>
+                                    <div class="template-mini-preview">
+                                        <span class="tmpl-lyric">despite everything, it's still you</span>
+                                    </div>
+                                    <span class="template-name">Minimal</span>
+                                </button>
+                                <button class="template-card" data-preset="&#9835; {song} &mdash; {artist} | {lyrics}">
+                                    <div class="template-card-head"><span class="template-icon spotify"><i class="fa-solid fa-music"></i></span><span class="template-badge">Detailed</span></div>
+                                    <div class="template-mini-preview">
+                                        <span class="tmpl-meta">&#9835; Song Title &mdash; Artist</span>
+                                        <span class="tmpl-lyric">current lyric</span>
+                                    </div>
+                                    <span class="template-name">Now Playing</span>
+                                </button>
+                                <button class="template-card" data-preset="&ldquo;{lyrics}&rdquo; &mdash; {song}">
+                                    <div class="template-card-head"><span class="template-icon"><i class="fa-solid fa-quote-left"></i></span><span class="template-badge">Mood</span></div>
+                                    <div class="template-mini-preview">
+                                        <span class="tmpl-lyric">&ldquo;current lyric&rdquo;</span>
+                                        <span class="tmpl-sub">&mdash; Song Title</span>
+                                    </div>
+                                    <span class="template-name">Quote</span>
+                                </button>
+                                <button class="template-card" data-preset="[{elapsed}/{duration}] {lyrics}">
+                                    <div class="template-card-head"><span class="template-icon"><i class="fa-solid fa-wave-square"></i></span><span class="template-badge">Live</span></div>
+                                    <div class="template-mini-preview">
+                                        <span class="tmpl-meta">[1:22 / 3:15]</span>
+                                        <span class="tmpl-lyric">current lyric</span>
+                                    </div>
+                                    <span class="template-name">Progress</span>
+                                </button>
+                                <button class="template-card" data-preset="&#9835; {song} &bull; {album} | {lyrics}">
+                                    <div class="template-card-head"><span class="template-icon"><i class="fa-solid fa-compact-disc"></i></span><span class="template-badge">Album</span></div>
+                                    <div class="template-mini-preview">
+                                        <span class="tmpl-meta">Song Title &bull; Album</span>
+                                        <span class="tmpl-lyric">current lyric</span>
+                                    </div>
+                                    <span class="template-name">Record</span>
+                                </button>
+                                <button class="template-card" data-preset="&#10022; {lyrics} &#10022;">
+                                    <div class="template-card-head"><span class="template-icon"><i class="fa-solid fa-star"></i></span><span class="template-badge">Bold</span></div>
+                                    <div class="template-mini-preview">
+                                        <span class="tmpl-lyric">&#10022; current lyric &#10022;</span>
+                                        <span class="tmpl-sub">Centered spotlight</span>
+                                    </div>
+                                    <span class="template-name">Spotlight</span>
+                                </button>
+                                <button class="template-card" data-preset="{lyrics} &mdash; {artist}">
+                                    <div class="template-card-head"><span class="template-icon"><i class="fa-solid fa-feather"></i></span><span class="template-badge">Simple</span></div>
+                                    <div class="template-mini-preview">
+                                        <span class="tmpl-lyric">current lyric</span>
+                                        <span class="tmpl-sub">&mdash; Artist</span>
+                                    </div>
+                                    <span class="template-name">Signature</span>
+                                </button>
+                                <button class="template-card" data-custom-template="true">
+                                    <div class="template-card-head"><span class="template-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span><span class="template-badge">Yours</span></div>
+                                    <div class="template-mini-preview">
+                                        <span class="tmpl-meta">Build from scratch</span>
+                                        <span class="tmpl-lyric">Mix any live fields</span>
+                                    </div>
+                                    <span class="template-name">Custom</span>
+                                </button>
+                            </div>
+                        </section>
+
+                        <section class="settings-section" id="quick-presets-section">
+                            <h2>Quick Presets</h2>
+                            <p class="section-desc">Pick a decoration, then keep editing it above.</p>
+                            <div class="presets-categories">
+                                <div class="preset-category">
+                                    <span class="preset-category-label">♡ Cute</span>
+                                    <div class="presets-grid">
+                                        <button class="preset-btn" data-preset="♡ {lyrics} ♡" title="Hearts"><span class="preset-preview">♡ lyrics ♡</span></button>
+                                        <button class="preset-btn" data-preset="꒰ {lyrics} ꒱" title="Soft"><span class="preset-preview">꒰ lyrics ꒱</span></button>
+                                        <button class="preset-btn" data-preset="ʚ {lyrics} ɞ" title="Cute Bees"><span class="preset-preview">ʚ lyrics ɞ</span></button>
+                                        <button class="preset-btn" data-preset="୨♡୧ {lyrics} ୨♡୧" title="Heart Ribbon"><span class="preset-preview">୨♡୧ lyrics ୨♡୧</span></button>
+                                        <button class="preset-btn" data-preset="ฅ {lyrics} ฅ" title="Cat Paws"><span class="preset-preview">ฅ lyrics ฅ</span></button>
+                                        <button class="preset-btn" data-preset="♡⃝ {lyrics} ♡⃝" title="Circle Heart"><span class="preset-preview">♡⃝ lyrics ♡⃝</span></button>
+                                    </div>
+                                </div>
+                                <div class="preset-category">
+                                    <span class="preset-category-label">✧ Sparkles</span>
+                                    <div class="presets-grid">
+                                        <button class="preset-btn" data-preset="✧ {lyrics} ✧" title="Stars"><span class="preset-preview">✧ lyrics ✧</span></button>
+                                        <button class="preset-btn" data-preset="⋆｡°✩ {lyrics} ✩°｡⋆" title="Celestial"><span class="preset-preview">⋆｡°✩ lyrics ✩°｡⋆</span></button>
+                                        <button class="preset-btn" data-preset="✦ {lyrics} ✦" title="Diamond"><span class="preset-preview">✦ lyrics ✦</span></button>
+                                        <button class="preset-btn" data-preset="✧･ﾟ: {lyrics} :･ﾟ✧" title="Sparkle Dust"><span class="preset-preview">✧･ﾟ: lyrics :･ﾟ✧</span></button>
+                                        <button class="preset-btn" data-preset="⟡ {lyrics} ⟡" title="Star Diamond"><span class="preset-preview">⟡ lyrics ⟡</span></button>
+                                    </div>
+                                </div>
+                                <div class="preset-category">
+                                    <span class="preset-category-label">♪ Musical</span>
+                                    <div class="presets-grid">
+                                        <button class="preset-btn" data-preset="♪ {lyrics} ♪" title="Single Note"><span class="preset-preview">♪ lyrics ♪</span></button>
+                                        <button class="preset-btn" data-preset="♫ {lyrics} ♫" title="Double Note"><span class="preset-preview">♫ lyrics ♫</span></button>
+                                        <button class="preset-btn" data-preset="♬ {lyrics} ♬" title="Beamed Notes"><span class="preset-preview">♬ lyrics ♬</span></button>
+                                        <button class="preset-btn" data-preset="♩ {lyrics} ♩" title="Quarter Note"><span class="preset-preview">♩ lyrics ♩</span></button>
+                                        <button class="preset-btn" data-preset="🎵 {lyrics} 🎵" title="Music Emoji"><span class="preset-preview">🎵 lyrics 🎵</span></button>
+                                    </div>
+                                </div>
+                                <div class="preset-category">
+                                    <span class="preset-category-label">· Minimal</span>
+                                    <div class="presets-grid">
+                                        <button class="preset-btn" data-preset="· {lyrics} ·" title="Dots"><span class="preset-preview">· lyrics ·</span></button>
+                                        <button class="preset-btn" data-preset="— {lyrics} —" title="Dashes"><span class="preset-preview">— lyrics —</span></button>
+                                        <button class="preset-btn" data-preset="│ {lyrics} │" title="Lines"><span class="preset-preview">│ lyrics │</span></button>
+                                        <button class="preset-btn" data-preset="• {lyrics} •" title="Bullets"><span class="preset-preview">• lyrics •</span></button>
+                                        <button class="preset-btn" data-preset="⋄ {lyrics} ⋄" title="Diamonds"><span class="preset-preview">⋄ lyrics ⋄</span></button>
+                                    </div>
+                                </div>
+                                <div class="preset-category">
+                                    <span class="preset-category-label">༺ Decorative</span>
+                                    <div class="presets-grid">
+                                        <button class="preset-btn" data-preset="༺ {lyrics} ༻" title="Ornate"><span class="preset-preview">༺ lyrics ༻</span></button>
+                                        <button class="preset-btn" data-preset="『 {lyrics} 』" title="Japanese"><span class="preset-preview">『 lyrics 』</span></button>
+                                        <button class="preset-btn" data-preset="《 {lyrics} 》" title="Guillemets"><span class="preset-preview">《 lyrics 》</span></button>
+                                        <button class="preset-btn" data-preset="【 {lyrics} 】" title="Brackets"><span class="preset-preview">【 lyrics 】</span></button>
+                                        <button class="preset-btn" data-preset="❀ {lyrics} ❀" title="Flowers"><span class="preset-preview">❀ lyrics ❀</span></button>
+                                    </div>
+                                </div>
+                                <div class="preset-category">
+                                    <span class="preset-category-label">(◕‿◕) Kaomoji</span>
+                                    <div class="presets-grid">
+                                        <button class="preset-btn" data-preset="૮ {lyrics} ა" title="Bear"><span class="preset-preview">૮ lyrics ა</span></button>
+                                        <button class="preset-btn" data-preset="(｡･ω･｡) {lyrics} (｡･ω･｡)" title="Cute Face"><span class="preset-preview">(｡･ω･｡) lyrics</span></button>
+                                        <button class="preset-btn" data-preset="( ´ ˘ ` ) {lyrics} ( ´ ˘ ` )" title="Sleepy"><span class="preset-preview">( ´ ˘ ` ) lyrics</span></button>
+                                        <button class="preset-btn" data-preset="( ˶ᵔ ᵕ ᵔ˶ ) {lyrics} ( ˶ᵔ ᵕ ᵔ˶ )" title="Happy"><span class="preset-preview">( ˶ᵔ ᵕ ᵔ˶ ) lyrics</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- ===== SETTINGS TAB ===== -->
+                    <div class="tab-content" id="settings-tab">
+                        <section class="settings-section">
+                            <h2>Connections</h2>
+                            <div class="setting-card">
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Discord Token</h3><p>Stored locally, never shared</p></div>
+                                </div>
+                                <input type="password" id="discord-token" class="settings-input" placeholder="Paste your Discord token">
+                                <div class="connection-actions">
+                                    <button class="btn-secondary" id="auto-extract-token"><i class="fa-solid fa-wand-magic-sparkles"></i> Find automatically</button>
+                                    <button class="btn-secondary" id="validate-token">Validate</button>
+                                </div>
+                                <div class="setting-divider"></div>
+                                <div class="discord-spotify-connection">
+                                    <div class="connection-service-icon"><i class="fa-brands fa-spotify"></i></div>
+                                    <div class="setting-info">
+                                        <h3>Spotify via Discord</h3>
+                                        <p>Uses the Spotify account already linked under Discord Settings → Connections.</p>
+                                    </div>
+                                </div>
+                                <button class="btn-primary connection-submit" id="authorize-spotify"><i class="fa-solid fa-link"></i> Use Discord's Spotify account</button>
+                                <button class="btn-secondary connection-submit" id="open-quick-setup"><i class="fa-solid fa-wand-magic-sparkles"></i> Run two-click setup</button>
+                                <p class="connection-feedback" id="spotify-auth-status" aria-live="polite"></p>
+                            </div>
+                        </section>
+                        <section class="settings-section">
+                            <h2>Advanced</h2>
+                            <div class="setting-card">
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Lyric Timing Offset</h3><p>Shift lyrics forward/backward (ms)</p></div>
+                                    <input type="number" class="settings-input compact" id="time-offset" value="500" step="50">
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Auto Offset</h3><p>Automatically calibrate offset</p></div>
+                                    <label class="toggle-switch"><input type="checkbox" id="auto-offset" checked><span class="toggle-track"></span></label>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Calibration Samples</h3><p>Measurements used by automatic timing</p></div>
+                                    <input type="number" class="settings-input compact" id="offset-samples" value="3" min="1" max="20">
+                                </div>
+                            </div>
+                        </section>
+                        <section class="settings-section">
+                            <h2>Application</h2>
+                            <div class="setting-card">
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Launch at startup</h3></div>
+                                    <label class="toggle-switch"><input type="checkbox" id="auto-start"><span class="toggle-track"></span></label>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Start minimized</h3></div>
+                                    <label class="toggle-switch"><input type="checkbox" id="start-minimized"><span class="toggle-track"></span></label>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-info"><h3>Automatic updates</h3></div>
+                                    <label class="toggle-switch"><input type="checkbox" id="auto-update" checked><span class="toggle-track"></span></label>
+                                </div>
+                            </div>
+                        </section>
+                        <section class="settings-section">
+                            <h2>Credits</h2>
+                            <div class="credit-card">
+                                <div class="credit-copy">
+                                    <div class="credit-eyebrow">Designed &amp; built by</div>
+                                    <div class="credit-name">selfsecured</div>
+                                    <p>Your music, lyrics, and Discord presence in sync.</p>
+                                </div>
+                                <div class="credit-socials" aria-label="Creator links">
+                                    <a class="credit-social-link" href="https://discord.com/users/752923388955328752" data-external-url="https://discord.com/users/752923388955328752" title="Open selfsecured on Discord">
+                                        <span class="credit-social-icon"><i class="fa-brands fa-discord" aria-hidden="true"></i></span>
+                                        <span><small>Discord</small><strong>selfsecured</strong></span>
+                                        <i class="fa-solid fa-arrow-up-right-from-square credit-link-arrow" aria-hidden="true"></i>
+                                    </a>
+                                    <a class="credit-social-link" href="https://github.com/selfsecuredlab" data-external-url="https://github.com/selfsecuredlab" title="Open selfsecuredlab on GitHub">
+                                        <span class="credit-social-icon"><i class="fa-brands fa-github" aria-hidden="true"></i></span>
+                                        <span><small>GitHub</small><strong>selfsecuredlab</strong></span>
+                                        <i class="fa-solid fa-arrow-up-right-from-square credit-link-arrow" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                </div>
+
+                <!-- PREVIEW PANE (sticky) -->
+                <div class="preview-pane" id="preview-pane" data-preview-size="balanced">
+
+                    <!-- Discord Profile Preview -->
+                    <div class="discord-profile-card" id="discord-profile-preview">
+                        <div class="profile-banner" id="preview-banner"></div>
+                        <div class="profile-header-row">
+                            <div class="profile-avatar-wrapper">
+                                <div class="profile-avatar-container" id="preview-avatar-border">
+                                    <img class="profile-avatar" id="preview-avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%235865F2'/%3E%3C/svg%3E" alt="">
+                                </div>
+                                <div class="profile-status-dot online"></div>
+                            </div>
+                        </div>
+                        <div class="profile-body">
+                            <div class="profile-identity-row">
+                                <div class="profile-name-stack">
+                                    <div class="profile-displayname" id="preview-username">Display Name</div>
+                                    <div class="profile-username" id="preview-handle">username</div>
+                                </div>
+                                <div class="profile-badges" id="preview-badges" aria-label="Discord profile badges"></div>
+                            </div>
+                            <div class="profile-divider"></div>
+
+                            <!-- Spotify Activity -->
+                            <div class="profile-section">
+                                <div class="section-title">Listening to Spotify</div>
+                                <div class="spotify-activity">
+                                    <img class="activity-artwork" id="preview-album-art" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23282828'/%3E%3Ccircle cx='50' cy='50' r='30' fill='%231DB954'/%3E%3C/svg%3E" alt="">
+                                    <div class="activity-info">
+                                        <div class="activity-name">Spotify</div>
+                                        <div class="activity-details" id="preview-song-name">Song Name</div>
+                                        <div class="activity-state" id="preview-artist-name">by Artist</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Lyrics Module -->
+                            <div class="lyrics-module">
+                                <div class="lyrics-module-header">
+                                    <span class="lyrics-now-playing">♪ NOW PLAYING</span>
+                                </div>
+                                <div class="lyric-line previous" id="next-lyric">...</div>
+                                <div class="lyric-line current">
+                                    <span class="karaoke-text" id="current-lyric" data-text="Awaiting lyrics...">Awaiting lyrics...</span>
+                                </div>
+                                <div class="lyric-line next">...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Song Panel -->
+                    <div class="song-panel">
+                        <div class="song-panel-top">
+                            <div class="song-artwork-wrap">
+                                <div class="song-artwork" id="album-art"></div>
+                            </div>
+                            <div class="song-meta">
+                                <div class="song-title" id="song-title">Not Playing</div>
+                                <div class="song-artist" id="song-artist">Spotify</div>
+                            </div>
+                        </div>
+                        <div class="song-progress-wrap">
+                            <div class="progress-bar" id="progress-bar">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <div class="progress-time">
+                                <span id="current-time">0:00</span>
+                                <span id="total-time">0:00</span>
+                            </div>
+                        </div>
+                        <div class="playback-controls">
+                            <button id="prev-btn" class="ctrl-btn" aria-label="Previous track"><i class="fa-solid fa-backward-step"></i></button>
+                            <button id="play-pause-btn" class="ctrl-btn ctrl-btn-main" aria-label="Play or Pause">
+                                <i class="fa-solid fa-play" id="play-icon"></i>
+                                <i class="fa-solid fa-pause" id="pause-icon" style="display:none"></i>
+                            </button>
+                            <button id="next-btn" class="ctrl-btn" aria-label="Next track"><i class="fa-solid fa-forward-step"></i></button>
+                            <button id="like-btn" class="ctrl-btn" aria-label="Like track"><i class="fa-regular fa-heart"></i></button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="quick-setup-overlay" id="quick-setup-overlay" aria-hidden="true">
+        <section class="quick-setup-card" aria-labelledby="quick-setup-title">
+            <button class="quick-setup-skip" id="quick-setup-skip" type="button">Set up later</button>
+            <div class="quick-setup-brand">
+                <div><span>Quick setup</span><small>Discord + Spotify</small></div>
+            </div>
+            <div class="quick-setup-copy">
+                <span class="quick-setup-kicker">Two clicks. That's it.</span>
+                <h1 id="quick-setup-title">Put your lyrics on Discord.</h1>
+                <p>Connect Discord, then use its linked Spotify account.</p>
+            </div>
+            <div class="quick-setup-actions">
+                <button class="setup-action-card discord" id="quick-connect-discord" type="button">
+                    <span class="setup-step-number">1</span>
+                    <span class="setup-action-icon"><i class="fa-brands fa-discord"></i></span>
+                    <span class="setup-action-copy"><strong>Connect Discord</strong><small>Find my signed-in account</small></span>
+                    <span class="setup-action-state"><i class="fa-solid fa-arrow-right"></i></span>
+                </button>
+                <button class="setup-action-card spotify" id="quick-connect-spotify" type="button" disabled>
+                    <span class="setup-step-number">2</span>
+                    <span class="setup-action-icon"><i class="fa-brands fa-spotify"></i></span>
+                    <span class="setup-action-copy"><strong>Connect Spotify</strong><small>Use Discord Connections</small></span>
+                    <span class="setup-action-state"><i class="fa-solid fa-lock"></i></span>
+                </button>
+            </div>
+            <div class="quick-setup-fallback" id="quick-setup-fallback" hidden>
+                <label for="quick-discord-token">Discord could not be detected automatically. Paste the token once:</label>
+                <div><input type="password" id="quick-discord-token" class="settings-input" placeholder="Discord token"><button id="quick-save-token" class="btn-secondary" type="button">Continue</button></div>
+            </div>
+            <p class="quick-setup-status" id="quick-setup-status" aria-live="polite">Ready when you are.</p>
+            <div class="quick-setup-privacy"><i class="fa-solid fa-shield-halved"></i> Credentials stay on this device.</div>
+        </section>
+    </div>
+
+    <!-- Command Palette -->
+    <dialog id="command-palette" aria-label="Command palette">
+        <div class="cmd-input-wrapper">
+            <i class="fa-solid fa-search" aria-hidden="true"></i>
+            <input type="text" id="cmd-input" placeholder="Search commands or settings..." autofocus>
+            <kbd>Esc</kbd>
+        </div>
+        <div class="cmd-results" id="cmd-results">
+            <button class="cmd-item" data-action="lyrics">Open Lyrics</button>
+            <button class="cmd-item" data-action="profile">Open Profile</button>
+            <button class="cmd-item" data-action="appearance">Open Appearance</button>
+            <button class="cmd-item" data-action="templates">Open Templates</button>
+            <button class="cmd-item" data-action="settings">Open Settings</button>
+            <button class="cmd-item" data-action="save">Save changes</button>
+            <button class="cmd-item" data-action="reset">Reset changes</button>
+        </div>
+    </dialog>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Existing app logic -->
+    <script src="translations.js"></script>
+    <script src="app.js"></script>
+
+    <!-- New UI wiring -->
+    <script>
+    (function() {
+        'use strict';
+
+        // --- TAB SWITCHING ---
+        const navBtns = document.querySelectorAll('.sidebar-nav .nav-btn');
+        const viewTitle = document.getElementById('view-title');
+        const tabs = {
+            lyrics: document.getElementById('lyrics-tab'),
+            profile: document.getElementById('profile-tab'),
+            appearance: document.getElementById('appearance-tab'),
+            templates: document.getElementById('templates-tab'),
+            settings: document.getElementById('settings-tab')
+        };
+
+        // Quick decorations belong beside the lyric formatter, not in Templates.
+        const presetsAnchor = document.getElementById('lyrics-presets-anchor');
+        const quickPresets = document.getElementById('quick-presets-section');
+        if (presetsAnchor && quickPresets) presetsAnchor.replaceWith(quickPresets);
+
+        function switchTab(name) {
+            Object.values(tabs).forEach(t => { if (t) t.classList.remove('active'); });
+            navBtns.forEach(b => { b.classList.remove('active'); b.removeAttribute('aria-current'); });
+            if (tabs[name]) tabs[name].classList.add('active');
+            const btn = document.querySelector(`.nav-btn[data-tab="${name}"]`);
+            if (btn) { btn.classList.add('active'); btn.setAttribute('aria-current', 'page'); }
+            if (viewTitle) viewTitle.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+        }
+
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        // --- COMMAND PALETTE ---
+        const palette = document.getElementById('command-palette');
+        const cmdInput = document.getElementById('cmd-input');
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                palette.open ? palette.close() : palette.showModal();
+                if (palette.open && cmdInput) cmdInput.focus();
+            }
+            if (e.key === 'Escape' && palette.open) palette.close();
+        });
+
+        palette.addEventListener('click', (e) => { if (e.target === palette) palette.close(); });
+
+        document.querySelectorAll('.cmd-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const action = item.dataset.action;
+                if (tabs[action]) switchTab(action);
+                palette.close();
+            });
+        });
+
+        // --- SIDEBAR COLLAPSE ---
+        const sidebar = document.getElementById('sidebar');
+        const collapseBtn = document.querySelector('.collapse-btn');
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', () => {
+                const collapsed = sidebar.classList.toggle('collapsed');
+                collapseBtn.setAttribute('aria-expanded', String(!collapsed));
+                collapseBtn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+                collapseBtn.title = collapsed ? 'Expand' : 'Collapse';
+            });
+        }
+
+        // --- SEGMENTED CONTROLS ---
+        document.querySelectorAll('.segmented-control').forEach(ctrl => {
+            ctrl.querySelectorAll('.seg-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    ctrl.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+        });
+
+        // --- LIVE PREVIEW SIZE ---
+        const previewPane = document.getElementById('preview-pane');
+        const previewSizeControl = document.getElementById('preview-size-control');
+        const previewSizes = new Set(['compact', 'balanced', 'large']);
+        const applyPreviewSize = (size) => {
+            const safeSize = previewSizes.has(size) ? size : 'balanced';
+            if (previewPane) previewPane.dataset.previewSize = safeSize;
+            previewSizeControl?.querySelectorAll('[data-preview-size]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.previewSize === safeSize);
+            });
+            localStorage.setItem('lyricsstatus-preview-size', safeSize);
+        };
+        applyPreviewSize(localStorage.getItem('lyricsstatus-preview-size') || 'balanced');
+        previewSizeControl?.querySelectorAll('[data-preview-size]').forEach(btn => {
+            btn.addEventListener('click', () => applyPreviewSize(btn.dataset.previewSize));
+        });
+
+        // --- FORMAT CHIPS ---
+        document.querySelectorAll('.chip[data-var]').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const input = document.getElementById('custom-status');
+                if (!input) return;
+                const start = input.selectionStart || input.value.length;
+                const val = input.value;
+                input.value = val.slice(0, start) + chip.dataset.var + val.slice(start);
+                input.focus();
+                input.setSelectionRange(start + chip.dataset.var.length, start + chip.dataset.var.length);
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        });
+
+        // --- KARAOKE DATA-TEXT SYNC ---
+        const currentLyricEl = document.getElementById('current-lyric');
+        if (currentLyricEl) {
+            const obs = new MutationObserver(() => {
+                currentLyricEl.setAttribute('data-text', currentLyricEl.innerText);
+            });
+            obs.observe(currentLyricEl, { childList: true, characterData: true, subtree: true });
+        }
+
+        // --- REDUCED MOTION ---
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            document.documentElement.style.setProperty('--transition', '0.01s linear');
+        }
+    })();
+    </script>
+</body>
+</html>
