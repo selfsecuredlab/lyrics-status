@@ -12,7 +12,9 @@
     "dist": "npm run build && electron-builder --win --x64",
     "dist:portable": "npm run build && electron-builder --win portable --x64",
     "dist:installer": "npm run build && electron-builder --win nsis --x64",
-    "dist:all": "npm run build && electron-builder --win --x64 -p never"
+    "dist:release": "npm run dist:installer && npm run dist:portable",
+    "dist:all": "npm run dist:release",
+    "release": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release.ps1"
   },
   "build": {
     "appId": "com.lyricsstatus.app",
@@ -26,8 +28,6 @@
       "dist/**/*",
       "static/**/*",
       "res/**/*",
-      "data/**/*",
-      "cache/**/*",
       "!**/*.ts",
       "!**/*.map",
       "!**/tsconfig.json",

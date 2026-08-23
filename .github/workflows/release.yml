@@ -1,0 +1,108 @@
+name: Publish release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Verify website automation token
+        shell: pwsh
+        env:
+          WEBSITE_ACTIONS_TOKEN: ${{ secrets.WEBSITE_ACTIONS_TOKEN }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WEBSITE_ACTIONS_TOKEN)) {
+            throw 'Add WEBSITE_ACTIONS_TOKEN to the app repository before publishing a release.'
+          }
+
+      - name: Verify release version
+        id: release_info
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          $expectedTag = "v$version"
+          if ($env:GITHUB_REF_NAME -ne $expectedTag) {
+            throw "Tag $env:GITHUB_REF_NAME does not match package version $version."
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build installer and portable executable
+        run: npm run dist:release
+
+      - name: Verify files and create checksums
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.release_info.outputs.version }}
+        run: |
+          $files = @(
+            "release/LyricsStatus-Setup-$env:VERSION.exe",
+            "release/LyricsStatus-Portable-$env:VERSION.exe"
+          )
+
+          foreach ($file in $files) {
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+              throw "Expected release file was not built: $file"
+            }
+          }
+
+          $checksums = foreach ($file in $files) {
+            $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $([IO.Path]::GetFileName($file))"
+          }
+          $checksums | Set-Content -LiteralPath 'release/SHA256SUMS.txt' -Encoding ascii
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release_info.outputs.version }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $assets = @(
+            "release/LyricsStatus-Setup-$env:VERSION.exe",
+            "release/LyricsStatus-Portable-$env:VERSION.exe",
+            'release/SHA256SUMS.txt'
+          )
+
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag @assets --repo $env:GITHUB_REPOSITORY --clobber
+          }
+          else {
+            gh release create $tag @assets --repo $env:GITHUB_REPOSITORY --verify-tag --title "LyricsStatus $tag" --generate-notes
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub release publishing failed.' }
+
+      - name: Refresh website and VirusTotal results
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.WEBSITE_ACTIONS_TOKEN }}
+        run: |
+          gh workflow run refresh-virustotal.yml `
+            --repo selfsecuredlab/lyrics-status-website `
+            --ref main `
+            -f "release_tag=$env:GITHUB_REF_NAME"
+          if ($LASTEXITCODE -ne 0) { throw 'Could not start the website refresh workflow.' }

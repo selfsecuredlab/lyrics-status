@@ -41,6 +41,30 @@ To create a portable executable instead:
 npm run dist:portable
 ```
 
+To create both Windows executables:
+
+```powershell
+npm run dist:release
+```
+
+## Publish a release
+
+The release command updates the version, checks the TypeScript build, commits and tags the release, then starts the GitHub pipeline:
+
+```powershell
+npm run release -- 1.1.0
+```
+
+GitHub builds the installer and portable executable on a clean Windows runner, publishes `SHA256SUMS.txt`, creates the GitHub release, refreshes both VirusTotal reports, and redeploys [selfsecured.me](https://selfsecured.me/).
+
+One-time repository setup:
+
+1. Create a fine-grained GitHub token limited to `selfsecuredlab/lyrics-status-website` with **Actions: Read and write**.
+2. Add it to the `selfsecuredlab/lyrics-status` Actions secrets as `WEBSITE_ACTIONS_TOKEN`.
+3. Keep `VT_API_KEY` configured in the website repository Actions secrets.
+
+Run the release command from the repository root on `main`. The script refuses older versions, existing tags, tracked changes, or a branch that is not synchronized with `origin/main`.
+
 ## Project structure
 
 ```text
