@@ -110,7 +110,7 @@ jobs:
         run: |
           gh workflow run refresh-virustotal.yml `
             --repo selfsecuredlab/lyrics-status-website `
-            --ref main `
+            --ref mai `
             -f "release_tag=$env:GITHUB_REF_NAME"
           if ($LASTEXITCODE -ne 0) {
             Write-Warning 'Could not start the optional website refresh; the app release has already been published.'
