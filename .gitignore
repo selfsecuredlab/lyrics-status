@@ -5,6 +5,8 @@ cache/
 data/
 
 *.log
+log.txt
+.playwright-cli/
 output
 *.tsbuildinfo
 

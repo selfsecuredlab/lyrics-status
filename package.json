@@ -124,8 +124,12 @@
     "@types/node": "^20.10.0",
     "@types/uuid": "^9.0.7",
     "@types/ws": "^8.5.10",
-    "electron": "^28.0.0",
-    "electron-builder": "^24.9.1",
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
     "typescript": "^5.3.0"
+  },
+  "allowScripts": {
+    "classic-level@3.0.0": true,
+    "electron-winstaller@5.4.0": true
   }
 }

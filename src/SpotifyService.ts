@@ -1,6 +1,7 @@
 ﻿import { Settings } from "./Settings"
 import { Debug } from "./Debug"
 import { serviceEvents } from "./ServiceEvents"
+import { discordRequest } from "./DiscordApiClient"
 interface IDiscordConnection {
     type: string
     id: string
@@ -97,7 +98,8 @@ export class SpotifyService {
         let wasRateLimited = false
         for (let attempt = 0; attempt < MAX_REFRESH_ATTEMPTS; attempt++) {
             try {
-                const request = await fetch(url, {
+                const request = await discordRequest(url, {
+                    source: "spotify-connection",
                     headers: { "Authorization": discordToken }
                 })
 

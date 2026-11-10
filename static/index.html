@@ -39,15 +39,15 @@
 
     <header class="window-titlebar" aria-label="Window controls">
         <div class="window-drag-region" aria-hidden="true"></div>
+        <div class="window-controls">
+            <button id="close-btn" class="window-control close" aria-label="Close LyricsStatus" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            <button id="minimize-btn" class="window-control minimize" aria-label="Minimize LyricsStatus" title="Minimize"><i class="fa-solid fa-minus"></i></button>
+            <button id="maximize-btn" class="window-control maximize" aria-label="Maximize or restore LyricsStatus" title="Maximize or restore"><i class="fa-regular fa-square"></i></button>
+        </div>
         <div class="window-title-center">
             <span class="window-app-name">LyricsStatus</span>
             <span class="window-title-separator" aria-hidden="true"></span>
             <span class="window-app-credit">by selfsecured</span>
-        </div>
-        <div class="window-controls">
-            <button id="minimize-btn" class="window-control" aria-label="Minimize" title="Minimize"><i class="fa-solid fa-minus"></i></button>
-            <button id="maximize-btn" class="window-control" aria-label="Maximize or restore" title="Maximize"><i class="fa-regular fa-square"></i></button>
-            <button id="close-btn" class="window-control close" aria-label="Close" title="Close"><i class="fa-solid fa-xmark"></i></button>
         </div>
     </header>
 
@@ -58,13 +58,13 @@
 
         <!-- LEFT SIDEBAR -->
         <aside id="sidebar" class="sidebar" aria-label="Navigation">
-            <div class="sidebar-header">
-                <button class="collapse-btn" aria-label="Collapse sidebar" title="Collapse">
-                    <i class="fa-solid fa-chevron-left"></i>
-                </button>
-            </div>
-
             <nav class="sidebar-nav" aria-label="Main navigation">
+                <div class="nav-heading">
+                    <span class="nav-caption">WORKSPACE</span>
+                    <button class="collapse-btn" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">
+                        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                    </button>
+                </div>
                 <button class="nav-btn active" data-tab="lyrics" aria-current="page">
                     <i class="fa-solid fa-music" aria-hidden="true"></i><span>Lyrics</span>
                 </button>
@@ -83,7 +83,7 @@
             </nav>
 
             <div class="sidebar-footer">
-                <div class="sidebar-user" id="sidebar-user-card">
+                <button class="sidebar-user" id="sidebar-user-card" type="button" aria-label="Open profile settings" title="Open profile settings">
                     <div class="sidebar-user-avatar">
                         <i class="fa-solid fa-circle-user" aria-hidden="true"></i>
                     </div>
@@ -91,7 +91,8 @@
                         <div class="sidebar-user-name" id="sidebar-display-name">Not connected</div>
                         <div class="sidebar-user-tag" id="sidebar-user-tag">Connect Discord</div>
                     </div>
-                </div>
+                    <i class="fa-solid fa-chevron-right sidebar-user-chevron" aria-hidden="true"></i>
+                </button>
                 <div class="sidebar-kbd"><kbd>Ctrl</kbd><kbd>K</kbd> Command Palette</div>
             </div>
         </aside>
@@ -102,7 +103,11 @@
             <!-- TOP BAR -->
             <header class="topbar">
                 <div class="topbar-left">
-                    <h1 class="view-title" id="view-title">Lyrics</h1>
+                    <div class="topbar-title-group">
+                        <span class="topbar-eyebrow">CONTROL CENTER</span>
+                        <h1 class="view-title" id="view-title">Lyrics</h1>
+                        <p class="topbar-description" id="view-description">Shape the lyrics that appear on your Discord status.</p>
+                    </div>
                 </div>
                 <div class="topbar-right">
                     <div class="connection-pill" id="connection-pill">
@@ -600,6 +605,14 @@
                 <!-- PREVIEW PANE (sticky) -->
                 <div class="preview-pane" id="preview-pane" data-preview-size="balanced">
 
+                    <div class="preview-heading">
+                        <div>
+                            <span class="preview-eyebrow">PREVIEW</span>
+                            <h2>Discord activity</h2>
+                        </div>
+                        <span class="preview-update-note"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Updates as you edit</span>
+                    </div>
+
                     <!-- Discord Profile Preview -->
                     <div class="discord-profile-card" id="discord-profile-preview">
                         <div class="profile-banner" id="preview-banner"></div>
@@ -641,7 +654,7 @@
                                 </div>
                                 <div class="lyric-line previous" id="next-lyric">...</div>
                                 <div class="lyric-line current">
-                                    <span class="karaoke-text" id="current-lyric" data-text="Awaiting lyrics...">Awaiting lyrics...</span>
+                                    <span class="karaoke-text" id="current-lyric">Awaiting lyrics...</span>
                                 </div>
                                 <div class="lyric-line next">...</div>
                             </div>
@@ -751,6 +764,14 @@
         // --- TAB SWITCHING ---
         const navBtns = document.querySelectorAll('.sidebar-nav .nav-btn');
         const viewTitle = document.getElementById('view-title');
+        const viewDescription = document.getElementById('view-description');
+        const viewDescriptions = {
+            lyrics: 'Shape the lyrics that appear on your Discord status.',
+            profile: 'Choose what your Discord identity shares with friends.',
+            appearance: 'Tune the look and motion of your desktop app.',
+            templates: 'Start with a format, then make every line yours.',
+            settings: 'Manage your connections and desktop preferences.'
+        };
         const tabs = {
             lyrics: document.getElementById('lyrics-tab'),
             profile: document.getElementById('profile-tab'),
@@ -770,11 +791,25 @@
             if (tabs[name]) tabs[name].classList.add('active');
             const btn = document.querySelector(`.nav-btn[data-tab="${name}"]`);
             if (btn) { btn.classList.add('active'); btn.setAttribute('aria-current', 'page'); }
-            if (viewTitle) viewTitle.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+            if (viewTitle) {
+                viewTitle.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+                viewTitle.classList.remove('title-swap');
+                void viewTitle.offsetWidth;
+                viewTitle.classList.add('title-swap');
+            }
+            if (viewDescription) viewDescription.textContent = viewDescriptions[name] || '';
         }
 
         navBtns.forEach(btn => {
             btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        document.getElementById('sidebar-user-card')?.addEventListener('click', () => {
+            document.querySelector('.sidebar-nav .nav-btn[data-tab="profile"]')?.click();
+        });
+
+        document.querySelector('.window-drag-region')?.addEventListener('dblclick', () => {
+            window.electronAPI?.maximize();
         });
 
         // --- COMMAND PALETTE ---
@@ -808,7 +843,7 @@
                 const collapsed = sidebar.classList.toggle('collapsed');
                 collapseBtn.setAttribute('aria-expanded', String(!collapsed));
                 collapseBtn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
-                collapseBtn.title = collapsed ? 'Expand' : 'Collapse';
+                collapseBtn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
             });
         }
 
@@ -852,15 +887,6 @@
                 input.dispatchEvent(new Event('input', { bubbles: true }));
             });
         });
-
-        // --- KARAOKE DATA-TEXT SYNC ---
-        const currentLyricEl = document.getElementById('current-lyric');
-        if (currentLyricEl) {
-            const obs = new MutationObserver(() => {
-                currentLyricEl.setAttribute('data-text', currentLyricEl.innerText);
-            });
-            obs.observe(currentLyricEl, { childList: true, characterData: true, subtree: true });
-        }
 
         // --- REDUCED MOTION ---
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {

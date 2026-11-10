@@ -6,6 +6,7 @@ import { LyricsStatusApp } from "./app/LyricsStatusApp"
 import { Settings, IAllSettings, initSettingsPath } from "./Settings"
 import { initDataPath, dataStore } from "./app/DataStore"
 import { SpotifyService } from "./SpotifyService"
+import { discordRequest } from "./DiscordApiClient"
 import { startServer, stopServer } from "./Panel/Server"
 import { EventEmitter } from "events"
 import { serviceEvents } from "./ServiceEvents"
@@ -51,13 +52,16 @@ function createWindow(): void {
         : join(__dirname, "../res/icon.png")
     
     mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 800,
-        minWidth: 800,
-        minHeight: 600,
+        width: 1320,
+        height: 860,
+        minWidth: 960,
+        minHeight: 640,
         frame: false,
-        transparent: true,
-        backgroundColor: "#00000000",
+        transparent: false,
+        resizable: true,
+        movable: true,
+        thickFrame: process.platform === "win32",
+        backgroundColor: "#09090b",
         icon: iconPath,
         webPreferences: {
             nodeIntegration: false,
@@ -70,7 +74,7 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, "../static/index.html"))
 
     mainWindow.once("ready-to-show", () => {
-        mainWindow?.maximize()
+        mainWindow?.center()
         mainWindow?.show()
     })
 
@@ -328,12 +332,17 @@ function setupIPC(): void {
 
     ipcMain.handle("token:validate", async (_event: IpcMainInvokeEvent, token: string) => {
         try {
-            const response = await fetch("https://discord.com/api/v10/users/@me", {
+            const response = await discordRequest("https://discord.com/api/v10/users/@me", {
+                source: "auth",
+                maxAttempts: 1,
                 headers: { Authorization: token }
             })
-            return response.ok
+            if (response.ok) return { ok: true, code: "authenticated" }
+            if (response.status === 401 || response.status === 403) return { ok: false, code: "invalid_credentials" }
+            if (response.status === 429) return { ok: false, code: "rate_limited" }
+            return { ok: false, code: "discord_unavailable" }
         } catch {
-            return false
+            return { ok: false, code: "network_error" }
         }
     })
 
