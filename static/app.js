@@ -2101,8 +2101,23 @@ function updatePlayPauseButton() {
 
 // Update Now Playing
 function updateNowPlaying(song) {
+    const previousTrackKey = currentSong?.id || (currentSong ? `${currentSong.name || ''}\u0000${currentSong.artist || ''}` : '');
+    const nextTrackKey = song?.id || `${song?.name || ''}\u0000${song?.artist || ''}`;
+    const trackChanged = Boolean(nextTrackKey.replace('\u0000', '')) && nextTrackKey !== previousTrackKey;
+
     // Store current song globally for status preview
     currentSong = song;
+
+    if (trackChanged) {
+        [elements.albumArt?.closest('.song-artwork-wrap'), document.getElementById('preview-album-art')]
+            .filter(Boolean)
+            .forEach((artwork) => {
+                artwork.classList.remove('track-changed');
+                void artwork.offsetWidth;
+                artwork.classList.add('track-changed');
+                artwork.addEventListener('animationend', () => artwork.classList.remove('track-changed'), { once: true });
+            });
+    }
     
     // Update track ID and check like status
     if (song.id && song.id !== currentTrackId) {
@@ -3163,7 +3178,7 @@ function updateLyrics(lyrics, song) {
                     className += ' active';
                     // Add CSS variable for smooth progress within the word
                     if (wordProgress > 0) {
-                        return `<span class="${className}" style="--word-progress: ${wordProgress.toFixed(2)}">${escapeHtml(word)}</span>`;
+                        return `<span class="${className}" style="--word-progress: ${Math.round(wordProgress * 100)}%">${escapeHtml(word)}</span>`;
                     }
                 }
                 return `<span class="${className}">${escapeHtml(word)}</span>`;

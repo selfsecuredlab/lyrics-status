@@ -52,13 +52,16 @@ function createWindow(): void {
         : join(__dirname, "../res/icon.png")
     
     mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 800,
-        minWidth: 800,
-        minHeight: 600,
+        width: 1320,
+        height: 860,
+        minWidth: 960,
+        minHeight: 640,
         frame: false,
-        transparent: true,
-        backgroundColor: "#00000000",
+        transparent: false,
+        resizable: true,
+        movable: true,
+        thickFrame: process.platform === "win32",
+        backgroundColor: "#09090b",
         icon: iconPath,
         webPreferences: {
             nodeIntegration: false,
@@ -71,7 +74,7 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, "../static/index.html"))
 
     mainWindow.once("ready-to-show", () => {
-        mainWindow?.maximize()
+        mainWindow?.center()
         mainWindow?.show()
     })
 
