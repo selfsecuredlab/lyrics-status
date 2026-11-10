@@ -1,4 +1,4 @@
-import { unlink, appendFileSync } from "fs"
+import { appendFileSync } from "fs"
 import { join } from "path"
 
 export class Debug {
@@ -7,8 +7,10 @@ export class Debug {
     public static write(text: string): void {
         const date = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
 
-        appendFileSync(join(this.path, "log.txt"), `[${date}]: ${text}\n`)
+        try {
+            appendFileSync(join(this.path, "log.txt"), `[${date}]: ${text}\n`)
+        } catch {
+            // Diagnostics must never prevent the application from starting.
+        }
     }
 }
-
-unlink(join(Debug.path, "log.txt"), () => {})

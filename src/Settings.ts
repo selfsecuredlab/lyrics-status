@@ -14,6 +14,7 @@ export function initSettingsPath(userDataPath: string): void {
     if (!existsSync(userDataPath)) {
         mkdirSync(userDataPath, { recursive: true })
     }
+    Debug.path = userDataPath
     settingsPath = join(userDataPath, "settings.json")
     Debug.write(`Settings path initialized: ${settingsPath}`)
 }
