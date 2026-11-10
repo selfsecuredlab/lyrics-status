@@ -26,13 +26,18 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Verify website automation token
+      - name: Check optional website automation token
+        id: website_token
         shell: pwsh
         env:
           WEBSITE_ACTIONS_TOKEN: ${{ secrets.WEBSITE_ACTIONS_TOKEN }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:WEBSITE_ACTIONS_TOKEN)) {
-            throw 'Add WEBSITE_ACTIONS_TOKEN to the app repository before publishing a release.'
+            "configured=false" >> $env:GITHUB_OUTPUT
+            Write-Host 'Website refresh will be skipped because WEBSITE_ACTIONS_TOKEN is not configured.'
+          }
+          else {
+            "configured=true" >> $env:GITHUB_OUTPUT
           }
 
       - name: Verify release version
@@ -97,6 +102,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'GitHub release publishing failed.' }
 
       - name: Refresh website and VirusTotal results
+        if: steps.website_token.outputs.configured == 'true'
+        continue-on-error: true
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.WEBSITE_ACTIONS_TOKEN }}
@@ -105,4 +112,6 @@ jobs:
             --repo selfsecuredlab/lyrics-status-website `
             --ref main `
             -f "release_tag=$env:GITHUB_REF_NAME"
-          if ($LASTEXITCODE -ne 0) { throw 'Could not start the website refresh workflow.' }
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning 'Could not start the optional website refresh; the app release has already been published.'
+          }

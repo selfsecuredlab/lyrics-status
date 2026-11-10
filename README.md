@@ -59,10 +59,10 @@ Both build commands write into the ignored `release/` directory.
 For a published release, use the repository's release script from a clean, up-to-date `main` branch:
 
 ```powershell
-npm run release -- 1.1.0
+npm run release -- 1.2.0
 ```
 
-The script validates the version, builds the TypeScript app, commits the version change, creates a matching `v*.*.*` tag, and pushes the commit and tag. The tag starts the GitHub Actions workflow, which builds the installer and portable executable, creates SHA-256 checksums, and publishes the GitHub release. Configure the workflow's required `WEBSITE_ACTIONS_TOKEN` secret before running it; the release workflow uses it for its existing follow-up automation.
+The script validates the version, builds the TypeScript app, commits the version change, creates a matching `v*.*.*` tag, and pushes the commit and tag. The tag starts the GitHub Actions workflow, which builds the installer and portable executable, creates SHA-256 checksums, and publishes the GitHub release. The cross-repository website/VirusTotal refresh is optional and does not block publishing the app release.
 
 ## Project layout
 
