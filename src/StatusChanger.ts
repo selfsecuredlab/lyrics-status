@@ -2,7 +2,7 @@ import { PlaybackState } from "./PlaybackState"
 import { Settings } from "./Settings"
 import { LyricsLine } from "./Sources/BaseSource"
 import { Autooffset } from "./Autooffset"
-import { serviceEvents } from "./ServiceEvents"
+import { discordRequest } from "./DiscordApiClient"
 
 interface DiscordSettingsResponse {
     custom_status?: Record<string, unknown> | null
@@ -31,40 +31,7 @@ export class StatusChanger {
     }
 
     private async discordRequest(url: string, init: RequestInit): Promise<Response> {
-        const maxAttempts = 3
-        let wasRateLimited = false
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            const response = await fetch(url, init)
-            if (response.status !== 429 || attempt === maxAttempts - 1) {
-                if (response.ok && wasRateLimited) serviceEvents.emit("discord:rate-limit-cleared", { source: "discord-status" })
-                return response
-            }
-            wasRateLimited = true
-
-            let retryAfterSeconds = Number.parseFloat(response.headers.get("Retry-After") || "")
-            let isGlobal = false
-            try {
-                const body = await response.clone().json() as { retry_after?: number; global?: boolean }
-                if (Number.isFinite(body.retry_after)) retryAfterSeconds = Number(body.retry_after)
-                isGlobal = body.global === true
-            } catch {}
-
-            const retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
-                ? Math.ceil(retryAfterSeconds * 1000)
-                : Math.pow(2, attempt) * 1000
-
-            serviceEvents.emit("discord:rate-limit", {
-                source: "discord-status",
-                retryAfterMs,
-                retryAt: Date.now() + retryAfterMs,
-                attempt: attempt + 1,
-                maxAttempts,
-                global: isGlobal
-            })
-            await new Promise(resolve => setTimeout(resolve, retryAfterMs))
-        }
-
-        throw new Error("Discord request retry loop ended unexpectedly")
+        return discordRequest(url, { ...init, source: "discord-status" })
     }
 
     public async captureOriginalStatus(): Promise<boolean> {

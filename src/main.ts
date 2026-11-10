@@ -6,6 +6,7 @@ import { LyricsStatusApp } from "./app/LyricsStatusApp"
 import { Settings, IAllSettings, initSettingsPath } from "./Settings"
 import { initDataPath, dataStore } from "./app/DataStore"
 import { SpotifyService } from "./SpotifyService"
+import { discordRequest } from "./DiscordApiClient"
 import { startServer, stopServer } from "./Panel/Server"
 import { EventEmitter } from "events"
 import { serviceEvents } from "./ServiceEvents"
@@ -328,12 +329,17 @@ function setupIPC(): void {
 
     ipcMain.handle("token:validate", async (_event: IpcMainInvokeEvent, token: string) => {
         try {
-            const response = await fetch("https://discord.com/api/v10/users/@me", {
+            const response = await discordRequest("https://discord.com/api/v10/users/@me", {
+                source: "auth",
+                maxAttempts: 1,
                 headers: { Authorization: token }
             })
-            return response.ok
+            if (response.ok) return { ok: true, code: "authenticated" }
+            if (response.status === 401 || response.status === 403) return { ok: false, code: "invalid_credentials" }
+            if (response.status === 429) return { ok: false, code: "rate_limited" }
+            return { ok: false, code: "discord_unavailable" }
         } catch {
-            return false
+            return { ok: false, code: "network_error" }
         }
     })
 

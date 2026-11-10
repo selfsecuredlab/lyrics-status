@@ -589,9 +589,14 @@ function setupQuickOnboarding() {
 
     const connectDiscordToken = async (token) => {
         if (!token) return false;
-        const valid = await api.validateToken(token);
-        if (!valid) {
-            setStatus('That Discord token is not valid.', 'error');
+        const validation = await api.validateToken(token);
+        if (!validation?.ok) {
+            const message = validation?.code === 'rate_limited'
+                ? 'Discord is rate limiting requests. Wait a moment and try again.'
+                : validation?.code === 'network_error' || validation?.code === 'discord_unavailable'
+                    ? 'Discord could not be reached. Check your connection and try again.'
+                    : 'That Discord credential is not valid.';
+            setStatus(message, 'error');
             return false;
         }
         if (elements.discordToken) elements.discordToken.value = token;
@@ -749,13 +754,15 @@ function initSetupWizard() {
                     tokenStatus.className = 'token-status success';
                     
                     // Validate the token
-                    const isValid = await api.validateToken(result.token);
-                    if (isValid) {
+                    const validation = await api.validateToken(result.token);
+                    if (validation?.ok) {
                         tokenStatus.textContent = '✓ Token valid!';
                         settings.credentials = settings.credentials || {};
                         settings.credentials.token = result.token;
                     } else {
-                        tokenStatus.textContent = '✗ Token invalid';
+                        tokenStatus.textContent = validation?.code === 'rate_limited'
+                            ? '⌛ Discord is rate limiting requests'
+                            : '✗ Token invalid';
                         tokenStatus.className = 'token-status error';
                     }
                 } else {
@@ -1191,11 +1198,15 @@ function setupEventListeners() {
         }
         
         elements.validateToken.textContent = 'Checking...';
-        const valid = await api.validateToken(token);
+        const validation = await api.validateToken(token);
         elements.validateToken.textContent = 'Validate';
         
-        if (valid) {
+        if (validation?.ok) {
             showToast('Token is valid!', 'success');
+        } else if (validation?.code === 'rate_limited') {
+            showToast('Discord is rate limiting requests. Try again shortly.', 'error');
+        } else if (validation?.code === 'network_error' || validation?.code === 'discord_unavailable') {
+            showToast('Discord could not be reached. Try again shortly.', 'error');
         } else {
             showToast('Token is invalid', 'error');
         }
