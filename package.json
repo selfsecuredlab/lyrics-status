@@ -1,6 +1,6 @@
 {
   "name": "lyrics-status",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Display Spotify lyrics as your Discord status",
   "main": "dist/main.js",
   "scripts": {
