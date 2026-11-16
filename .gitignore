@@ -19,3 +19,8 @@ output
 .DS_Store
 Thumbs.db
 npm-debug.log*
+
+# Rust / Tauri build output
+src-tauri/target/
+src-tauri/gen/
+

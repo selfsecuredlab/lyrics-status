@@ -1,13 +1,14 @@
 # LyricsStatus
 
-Synced Spotify lyrics, right inside your Discord status. LyricsStatus is a Windows desktop app that follows the music you play through the Spotify account linked to Discord.
+Synced Spotify lyrics, right inside your Discord status. LyricsStatus is a native desktop app that follows the music you play through the Spotify account linked to Discord. It is built in Rust with Tauri v2, so it ships as a tiny binary and renders on the system WebView instead of bundling a browser.
 
 ## Get the app
 
-Download the Windows installer or portable build from the [GitHub Releases](https://github.com/selfsecuredlab/lyrics-status/releases) page.
+Download the latest build for your platform from the [GitHub Releases](https://github.com/selfsecuredlab/lyrics-status/releases) page.
 
-- **Installer** — standard setup with shortcuts and an uninstall entry.
-- **Portable** — run the executable directly without installing it.
+- **Windows** — NSIS installer, with shortcuts and an uninstall entry, or a standalone portable `.exe`.
+- **macOS** — `.dmg` disk image / `.app`, universal for Intel and Apple Silicon.
+- **Linux** — `.deb`, `.rpm`, or `.AppImage`.
 
 ## What it does
 
@@ -18,62 +19,59 @@ Download the Windows installer or portable build from the [GitHub Releases](http
 
 ## Requirements
 
-- Windows 10 or 11, 64-bit
+- Windows 10 or 11, macOS, or Linux (64-bit)
 - Discord desktop, signed in
 - Spotify connected in Discord under **User Settings → Connections**
-- Node.js 22.12 or newer (only when running or building from source)
+
+On Windows the app runs on WebView2, which is preinstalled on Windows 11 and added automatically by the setup installer on older versions.
 
 ## Run from source
+
+You will need:
+
+- [Rust](https://www.rust-lang.org/tools/install) (stable, installed via rustup)
+- Node.js 20 or newer — only for the Tauri CLI
+- The WebView and build dependencies Tauri needs for your OS; see the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for the per-platform list.
+
+Then, from the repository root:
 
 ```powershell
 git clone https://github.com/selfsecuredlab/lyrics-status.git
 cd lyrics-status
 npm ci
-npm start
+npx tauri dev
 ```
 
 On first launch, connect Discord and then use the Spotify account linked to that Discord account.
 
-## Build for Windows
-
-Install the dependencies and create the installer:
+## Build locally
 
 ```powershell
-npm ci
-npm run dist:installer
+npx tauri build
 ```
 
-The installer is written to `release/LyricsStatus-Setup-1.0.0.exe`. The filename uses the version in `package.json`.
+Platform bundles land in `src-tauri/target/release/bundle/` — for example `nsis/` on Windows, `dmg/` on macOS, and `deb/` and `appimage/` on Linux. The standalone Windows executable is written to `src-tauri/target/release/lyricsstatus.exe`.
 
-Build the portable executable or both artifacts with:
+## Create a release
+
+Push a `v*.*.*` git tag to publish a release:
 
 ```powershell
-npm run dist:portable
-npm run dist:release
+git tag v1.2.0
+git push origin v1.2.0
 ```
 
-Both build commands write into the ignored `release/` directory.
-
-## Create a GitHub release
-
-For a published release, use the repository's release script from a clean, up-to-date `main` branch:
-
-```powershell
-npm run release -- 1.2.0
-```
-
-The script validates the version, builds the TypeScript app, commits the version change, creates a matching `v*.*.*` tag, and pushes the commit and tag. The tag starts the GitHub Actions workflow, which builds the installer and portable executable, creates SHA-256 checksums, and publishes the GitHub release. The cross-repository website/VirusTotal refresh is optional and does not block publishing the app release.
+The tag starts a GitHub Actions workflow that builds the Windows, macOS, and Linux bundles and publishes them to a matching GitHub release.
 
 ## Project layout
 
 ```text
-src/                 Electron main process and application services
-static/              Desktop renderer, styles, and interface assets
-res/                 Packaged icons and application resources
-scripts/release.ps1  Version, tag, and publish workflow
+src-tauri/   Rust backend, Tauri configuration, and bundle icons
+static/      HTML, CSS, and JavaScript interface, reused unchanged
+.github/     Release workflow
 ```
 
-The app's local settings, credentials, lyric cache, logs, dependencies, and build output are not source files and are excluded from Git.
+The interface in `static/` is reused unchanged from the previous build; the former Electron sources under `src/` are no longer the app. Local settings, credentials, lyric cache, logs, dependencies, and build output are not source files and are excluded from Git.
 
 ## Credits and license
 

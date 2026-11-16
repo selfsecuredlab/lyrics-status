@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -13,105 +14,89 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Build the Tauri app on each OS and publish the bundles to a GitHub Release.
   release:
-    runs-on: windows-latest
-    timeout-minutes: 30
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: '--target universal-apple-darwin'
+          - platform: ubuntu-22.04
+            args: ''
+          - platform: windows-latest
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+
     steps:
-      - name: Check out release tag
-        uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v5
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
         with:
-          node-version: 24
-          cache: npm
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
-      - name: Check optional website automation token
-        id: website_token
-        shell: pwsh
-        env:
-          WEBSITE_ACTIONS_TOKEN: ${{ secrets.WEBSITE_ACTIONS_TOKEN }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:WEBSITE_ACTIONS_TOKEN)) {
-            "configured=false" >> $env:GITHUB_OUTPUT
-            Write-Host 'Website refresh will be skipped because WEBSITE_ACTIONS_TOKEN is not configured.'
-          }
-          else {
-            "configured=true" >> $env:GITHUB_OUTPUT
-          }
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
 
-      - name: Verify release version
-        id: release_info
-        shell: pwsh
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
-          $version = node -p "require('./package.json').version"
-          $expectedTag = "v$version"
-          if ($env:GITHUB_REF_NAME -ne $expectedTag) {
-            throw "Tag $env:GITHUB_REF_NAME does not match package version $version."
-          }
-          "version=$version" >> $env:GITHUB_OUTPUT
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            build-essential \
+            libssl-dev \
+            libgtk-3-dev \
+            file
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build installer and portable executable
-        run: npm run dist:release
-
-      - name: Verify files and create checksums
-        shell: pwsh
+      - name: Build and publish release
+        uses: tauri-apps/tauri-action@v0
         env:
-          VERSION: ${{ steps.release_info.outputs.version }}
-        run: |
-          $files = @(
-            "release/LyricsStatus-Setup-$env:VERSION.exe",
-            "release/LyricsStatus-Portable-$env:VERSION.exe"
-          )
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'LyricsStatus ${{ github.ref_name }}'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
 
-          foreach ($file in $files) {
-            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
-              throw "Expected release file was not built: $file"
-            }
-          }
-
-          $checksums = foreach ($file in $files) {
-            $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
-            "$hash  $([IO.Path]::GetFileName($file))"
-          }
-          $checksums | Set-Content -LiteralPath 'release/SHA256SUMS.txt' -Encoding ascii
-
-      - name: Create GitHub release
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.release_info.outputs.version }}
-        run: |
-          $tag = $env:GITHUB_REF_NAME
-          $assets = @(
-            "release/LyricsStatus-Setup-$env:VERSION.exe",
-            "release/LyricsStatus-Portable-$env:VERSION.exe",
-            'release/SHA256SUMS.txt'
-          )
-
-          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
-          if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag @assets --repo $env:GITHUB_REPOSITORY --clobber
-          }
-          else {
-            gh release create $tag @assets --repo $env:GITHUB_REPOSITORY --verify-tag --title "LyricsStatus $tag" --generate-notes
-          }
-          if ($LASTEXITCODE -ne 0) { throw 'GitHub release publishing failed.' }
-
-      - name: Refresh website and VirusTotal results
-        if: steps.website_token.outputs.configured == 'true'
-        continue-on-error: true
-        shell: pwsh
+  # Optional: notify the website repo so it can refresh its VirusTotal results.
+  # Skips cleanly when WEBSITE_ACTIONS_TOKEN is not configured.
+  website-refresh:
+    name: Refresh website and VirusTotal results
+    needs: release
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Dispatch website refresh (optional)
         env:
           GH_TOKEN: ${{ secrets.WEBSITE_ACTIONS_TOKEN }}
         run: |
-          gh workflow run refresh-virustotal.yml `
-            --repo selfsecuredlab/lyrics-status-website `
-            --ref mai `
-            -f "release_tag=$env:GITHUB_REF_NAME"
-          if ($LASTEXITCODE -ne 0) {
-            Write-Warning 'Could not start the optional website refresh; the app release has already been published.'
-          }
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "WEBSITE_ACTIONS_TOKEN not configured; skipping optional website refresh."
+            exit 0
+          fi
+          gh workflow run refresh-virustotal.yml \
+            --repo selfsecuredlab/lyrics-status-website \
+            --ref mai \
+            -f "release_tag=${GITHUB_REF_NAME}" \
+          || echo "Optional website refresh could not be started; the app release is already published."

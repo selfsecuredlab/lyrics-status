@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; style-src 'self' 'unsafe-inline' file: https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' file: https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' file:; img-src 'self' data: file: https://i.scdn.co https://*.scdn.co https://*.spotifycdn.com https://cdn.discordapp.com https://cdn.simpleicons.org; connect-src 'self' http://127.0.0.1:*">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; style-src 'self' 'unsafe-inline' file: https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' file: https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' file:; img-src 'self' data: file: https://i.scdn.co https://*.scdn.co https://*.spotifycdn.com https://cdn.discordapp.com https://cdn.simpleicons.org; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:*">
     <title>LyricsStatus</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,7 +38,7 @@
     </div>
 
     <header class="window-titlebar" aria-label="Window controls">
-        <div class="window-drag-region" aria-hidden="true"></div>
+        <div class="window-drag-region" data-tauri-drag-region aria-hidden="true"></div>
         <div class="window-controls">
             <button id="close-btn" class="window-control close" aria-label="Close LyricsStatus" title="Close"><i class="fa-solid fa-xmark"></i></button>
             <button id="minimize-btn" class="window-control minimize" aria-label="Minimize LyricsStatus" title="Minimize"><i class="fa-solid fa-minus"></i></button>
@@ -751,6 +751,9 @@
 
     <!-- Toast Notifications -->
     <div class="toast-container" id="toast-container"></div>
+
+    <!-- Electron compatibility bridge over Tauri (must load before app.js) -->
+    <script src="electron-shim.js"></script>
 
     <!-- Existing app logic -->
     <script src="translations.js"></script>

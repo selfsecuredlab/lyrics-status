@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capabilities for the main LyricsStatus window. Custom commands are always allowed; this enables core event + window APIs used by the electron compatibility shim.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default"
+  ]
+}
