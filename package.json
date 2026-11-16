@@ -4,6 +4,7 @@
   "description": "Display Spotify lyrics as your Discord status",
   "main": "dist/main.js",
   "scripts": {
+    "tauri": "tauri",
     "build": "tsc",
     "test": "npm run build && node --test",
     "start": "npm run build && electron .",
