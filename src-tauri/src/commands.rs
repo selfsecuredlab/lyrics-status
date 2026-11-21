@@ -201,7 +201,11 @@ pub fn open_external(url: String) {
                 .args(["/C", "start", "", &url])
                 .spawn();
         }
-        #[cfg(not(target_os = "windows"))]
+        #[cfg(target_os = "macos")]
+        {
+            let _ = std::process::Command::new("open").arg(&url).spawn();
+        }
+        #[cfg(not(any(target_os = "windows", target_os = "macos")))]
         {
             let _ = std::process::Command::new("xdg-open").arg(&url).spawn();
         }

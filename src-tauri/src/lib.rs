@@ -14,6 +14,7 @@ mod spotify;
 mod state;
 mod status;
 mod token_extract;
+mod updates;
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{TrayIconBuilder, TrayIconEvent};
@@ -38,6 +39,7 @@ pub fn run() {
             commands::app_stop,
             commands::app_toggle,
             commands::app_status,
+            updates::check_for_update,
             commands::spotify_authorize,
             commands::spotify_play,
             commands::spotify_pause,
