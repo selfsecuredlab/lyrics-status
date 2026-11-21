@@ -353,10 +353,58 @@ async function init() {
     
     hideLoadingScreen();
     startUpdateLoop();
+    startReleaseChecks();
 
     if (needsSetup) {
         showQuickSetup();
     }
+}
+
+const RELEASE_CHECK_INTERVAL = 6 * 60 * 60 * 1000;
+const RELEASE_DOWNLOADS = 'https://github.com/selfsecuredlab/lyrics-status/releases/latest';
+let checkRelease;
+
+function startReleaseChecks() {
+    const notice = document.getElementById('release-notice');
+    const message = document.getElementById('release-message');
+    let currentVersion;
+    let dismissedVersion;
+    let checking = false;
+
+    document.getElementById('release-download').addEventListener('click', () => {
+        api.openExternal(RELEASE_DOWNLOADS).catch(() => {});
+    });
+    document.getElementById('release-dismiss').addEventListener('click', () => {
+        dismissedVersion = currentVersion;
+        notice.hidden = true;
+    });
+
+    checkRelease = async () => {
+        if (settings.update?.enableAutoupdate === false) {
+            notice.hidden = true;
+            return;
+        }
+        if (checking) return;
+
+        checking = true;
+        try {
+            const version = await api.checkForUpdate();
+            if (settings.update?.enableAutoupdate === false || version === dismissedVersion || !version) {
+                notice.hidden = true;
+                return;
+            }
+            currentVersion = version;
+            notice.hidden = false;
+            message.textContent = `LyricsStatus v${version} is available.`;
+        } catch (error) {
+            console.debug('GitHub update check failed:', error);
+        } finally {
+            checking = false;
+        }
+    };
+
+    void checkRelease();
+    setInterval(checkRelease, RELEASE_CHECK_INTERVAL);
 }
 
 // Create enhanced loading particles
@@ -2007,7 +2055,9 @@ async function saveSettingsHandler(options = {}) {
     };
     
     await api.setSettings(newSettings);
+    const updateChecksChanged = settings.update?.enableAutoupdate !== newSettings.update.enableAutoupdate;
     settings = newSettings;
+    if (updateChecksChanged) void checkRelease?.();
     applyAppearance(appearance);
     markSettingsSaved();
     if (!options.silent) showToast('Settings saved successfully!', 'success');

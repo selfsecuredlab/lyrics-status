@@ -99,6 +99,11 @@
 
         <!-- MAIN AREA -->
         <main id="main-area">
+            <aside class="release-notice" id="release-notice" hidden>
+                <span id="release-message" role="status"></span>
+                <button class="btn-secondary" id="release-download" type="button">View downloads</button>
+                <button class="btn-ghost" id="release-dismiss" type="button">Later</button>
+            </aside>
 
             <!-- TOP BAR -->
             <header class="topbar">
@@ -571,7 +576,7 @@
                                     <label class="toggle-switch"><input type="checkbox" id="start-minimized"><span class="toggle-track"></span></label>
                                 </div>
                                 <div class="setting-row">
-                                    <div class="setting-info"><h3>Automatic updates</h3></div>
+                                    <div class="setting-info"><h3>Check for updates automatically</h3></div>
                                     <label class="toggle-switch"><input type="checkbox" id="auto-update" checked><span class="toggle-track"></span></label>
                                 </div>
                             </div>

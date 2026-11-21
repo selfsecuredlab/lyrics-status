@@ -61,6 +61,7 @@
     clearHistory: function () { return invoke('history_clear'); },
 
     // External links
+    checkForUpdate: function () { return invoke('check_for_update'); },
     openExternal: function (url) { return invoke('open_external', { url: url }); },
 
     // Spotify user / library / browse

@@ -589,6 +589,21 @@ body.liquid-mode::after {
 /* =========================================================
    TAB CONTENT
    ========================================================= */
+.release-notice {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 8px 20px;
+    border-bottom: 1px solid var(--accent);
+    background: var(--accent-muted);
+    color: var(--text-primary);
+}
+
+.release-notice[hidden] { display: none; }
+.release-notice [role="status"] { margin-right: auto; }
+
 .tab-content { display: none; width: min(100%, 1160px); margin: 0 auto; animation: fadeIn 0.25s ease; }
 .tab-content.active { display: block; }
 
