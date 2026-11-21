@@ -56,14 +56,9 @@ Platform bundles land in `src-tauri/target/release/bundle/` — for example `nsi
 
 ## Create a release
 
-Update the version in `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock` and `src-tauri/tauri.conf.json`. Commit those changes, then tag that commit on the Tauri release branch. For example, for version 2.0.1:
+Update the version in `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock` and `src-tauri/tauri.conf.json`. Add a matching version heading and notes to [CHANGELOG.md](CHANGELOG.md).
 
-```powershell
-git tag -a v2.0.1 -m "LyricsStatus v2.0.1"
-git push origin v2.0.1
-```
-
-The workflow uploads the Windows, macOS, and Linux bundles to a draft GitHub release. Verify the platform downloads and add release notes before publishing the draft. Published stable releases are visible to the app's update checker.
+Pushing the version change to `rust` starts the release workflow. It creates the matching `v*.*.*` tag and uploads the Windows, macOS and Linux bundles to a draft. The workflow publishes the release with the changelog entry once all platform builds and the asset check pass. A matching tag pushed manually also triggers the workflow.
 
 ## Project layout
 

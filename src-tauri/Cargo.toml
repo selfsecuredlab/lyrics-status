@@ -1,6 +1,6 @@
 [package]
 name = "lyricsstatus"
-version = "2.0.0"
+version = "2.0.1"
 description = "Display Spotify lyrics as your Discord status"
 authors = ["selfsecured"]
 edition = "2021"
